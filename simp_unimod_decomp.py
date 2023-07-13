@@ -1,6 +1,7 @@
 import numpy as np
 from islpy import BasicSet, Space, Constraint, Context
 from fpylll import LLL, IntegerMatrix
+import olll
 
 # For simplicial cones
 class Cone():
@@ -12,19 +13,15 @@ class Cone():
 
     def get_index(self):
         """Volume of parallelepiped"""
-        det = abs(np.linalg.det(self.rays))
+        det = int(abs(np.linalg.det(self.rays)))
         return (0.5 * det)
 
     def get_sample_point(self):
         """
         Use LLL and find
         """
-        U = IntegerMatrix.identity(self.d)
-        B = IntegerMatrix.from_matrix(self.rays)
-        
-        LLL.reduction(B, U)
-        B = [list(r) for r in list(B)]
-        U = [list(r) for r in list(U)]
+        B = olll.reduction(self.rays, 0.75)
+        U = (np.array(B) @ np.linalg.inv(np.array(self.rays))).round().astype(int).tolist()
 
         index, λ = min(enumerate(B), key = lambda r : max(r[1]))
         v = U[index]
