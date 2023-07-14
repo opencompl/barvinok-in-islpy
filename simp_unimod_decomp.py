@@ -2,6 +2,7 @@ import numpy as np
 from islpy import BasicSet, Space, Constraint, Context
 from fpylll import LLL, IntegerMatrix
 import olll
+from math import gcd
 
 # For simplicial cones
 class Cone():
@@ -14,26 +15,33 @@ class Cone():
     def get_index(self):
         """Volume of parallelepiped"""
         det = int(abs(np.linalg.det(self.rays)))
-        return (0.5 * det)
+        return det
 
     def get_sample_point(self):
         """
         Use LLL and find
         """
-        B = olll.reduction(self.rays, 0.75)
-        U = (np.array(B) @ np.linalg.inv(np.array(self.rays))).round().astype(int).tolist()
+        r = np.array(self.rays)
+        R = (np.linalg.inv(r) * np.linalg.det(r)).round().astype(int).tolist()
+        B = olll.reduction(R, 0.75)
+        U = (np.array(B) @ r).tolist()
+        #assert ((np.array(U) @ np.array(self.rays) == np.array(B)).all())
+        U = [[int(i/gcd(*l)) for i in l] for l in U]
 
         index, λ = min(enumerate(B), key = lambda r : max(r[1]))
         v = U[index]
 
         if all(map(lambda x : x <= 0, λ)):
-            λ = -λ
-            v = -v
+            λ = [-i for i in λ]
+            v = [-i for i in v]
         
         firstNonzeroElem = [x for x in λ if x != 0][0]
         sign = firstNonzeroElem/abs(firstNonzeroElem)
         
         return v, sign
+
+    def __repr__(self):
+        return f"{'+' if self.sign == 1 else '-'}{self.rays}"
 
 def unimodular_decomp(cone):
     ind = cone.get_index()
