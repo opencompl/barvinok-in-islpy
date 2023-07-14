@@ -25,6 +25,7 @@ class Cone():
     def get_sample_point(self):
         """
         Use LLL and find
+        https://math.ucdavis.edu/~deloera/researchsummary/barvinokalgorithm-latte1.pdf, p. 1279-80
         """
         r = np.array(self.rays)
         R = (inv(r) * det(r)).round().astype(int).tolist()
@@ -46,6 +47,7 @@ class Cone():
 
 def unimodular_decomp(cone):
     ind = cone.get_index()
+    assert(ind != 0)
     if ind == 1: return [cone]
     else:
         cones = []
