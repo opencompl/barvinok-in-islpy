@@ -1,7 +1,6 @@
 import numpy as np
 from numpy.linalg import inv, det
 from islpy import BasicSet, Space, Constraint, Context
-from fpylll import LLL, IntegerMatrix
 import olll
 from math import gcd
 
@@ -55,7 +54,7 @@ def unimodular_decomp(cone):
         w = cone.get_sample_point()
         for i in range(len(rays)):
             replaced = subAtWith(rays, i, w)
-            d = det(replaced).item()
+            d = int(det(replaced).item())
             if d == 0: continue
             ki = Cone(replaced, sign(d) * cone.sign)
             cones.append(ki)
