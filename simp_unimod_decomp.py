@@ -7,6 +7,8 @@ from math import gcd
 
 def sign(x): return x/abs(x)
 
+def subAtWith(l, i, x): return (l[:i] + [x] + l[i+1:])
+
 # For simplicial cones
 class Cone():
     def __init__(self, rays, sign=1):
@@ -54,7 +56,7 @@ def unimodular_decomp(cone):
         rays = cone.rays
         w, sign = cone.get_sample_point()
         for i in range(len(rays)):
-            ki = Cone(rays[:i] + [w] + rays[i+1:], sign * cone.sign)
+            ki = Cone(subAtWith(rays, i, w), sign * cone.sign)
             cones.append(ki)
         final_nested = map(unimodular_decomp, cones)
         final = [cone for decomp in final_nested for cone in decomp]
