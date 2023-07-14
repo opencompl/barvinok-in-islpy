@@ -37,13 +37,9 @@ class Cone():
         v = U[index]
 
         if all(map(lambda x : x <= 0, λ)):
-            λ = [-i for i in λ]
             v = [-i for i in v]
         
-        indexOfFirstNonzeroElem = [i for i in range(len(λ)) if λ[i] != 0][0]
-        s = sign(λ[indexOfFirstNonzeroElem])
-
-        return v, s
+        return v
 
     def __repr__(self):
         return f"{'+' if self.sign == 1 else '-'}{self.rays}"
@@ -54,10 +50,14 @@ def unimodular_decomp(cone):
     else:
         cones = []
         rays = cone.rays
-        w, sign = cone.get_sample_point()
+        w = cone.get_sample_point()
         for i in range(len(rays)):
-            ki = Cone(subAtWith(rays, i, w), sign * cone.sign)
+            replaced = subAtWith(rays, i, w)
+            d = det(replaced).item()
+            if d == 0: continue
+            ki = Cone(replaced, sign(d) * cone.sign)
             cones.append(ki)
+            print(f"{cone} -> {ki}")
         final_nested = map(unimodular_decomp, cones)
         final = [cone for decomp in final_nested for cone in decomp]
         return final
