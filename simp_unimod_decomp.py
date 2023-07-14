@@ -33,7 +33,7 @@ class Cone():
         #assert ((np.array(U) @ np.array(self.rays) == np.array(B)).all())
         U = [[int(i/gcd(*l)) for i in l] for l in U]
 
-        index, λ = min(enumerate(B), key = lambda r : max(r[1]))
+        index, λ = min(enumerate(B), key = lambda r : abs(max(r[1], key=abs)))
         v = U[index]
 
         if all(map(lambda x : x <= 0, λ)):
