@@ -1,8 +1,11 @@
 import numpy as np
+from numpy.linalg import inv, det
 from islpy import BasicSet, Space, Constraint, Context
 from fpylll import LLL, IntegerMatrix
 import olll
 from math import gcd
+
+def sign(x): return x/abs(x)
 
 # For simplicial cones
 class Cone():
@@ -22,7 +25,7 @@ class Cone():
         Use LLL and find
         """
         r = np.array(self.rays)
-        R = (np.linalg.inv(r) * np.linalg.det(r)).round().astype(int).tolist()
+        R = (inv(r) * det(r)).round().astype(int).tolist()
         B = olll.reduction(R, 0.75)
         U = (np.array(B) @ r).tolist()
         #assert ((np.array(U) @ np.array(self.rays) == np.array(B)).all())
@@ -35,10 +38,10 @@ class Cone():
             λ = [-i for i in λ]
             v = [-i for i in v]
         
-        firstNonzeroElem = [x for x in λ if x != 0][0]
-        sign = firstNonzeroElem/abs(firstNonzeroElem)
-        
-        return v, sign
+        indexOfFirstNonzeroElem = [i for i in range(len(λ)) if λ[i] != 0][0]
+        s = sign(λ[indexOfFirstNonzeroElem])
+
+        return v, s
 
     def __repr__(self):
         return f"{'+' if self.sign == 1 else '-'}{self.rays}"
