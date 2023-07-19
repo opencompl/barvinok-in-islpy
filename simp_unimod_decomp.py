@@ -33,13 +33,14 @@ class Cone():
         #assert ((np.array(U) @ np.array(self.rays) == np.array(B)).all())
         U = [[int(i/gcd(*l)) for i in l] for l in U]
 
-        index, λ = min(enumerate(B), key = lambda r : abs(max(r[1], key=abs)))
+        index, λ = min(enumerate(B), key = lambda r : max(map(abs,r[1])))
         v = U[index]
 
         if all(map(lambda x : x <= 0, λ)):
             v = [-i for i in v]
+            λ = [-i for i in λ]
         
-        return v
+        return v, λ
 
     def __repr__(self):
         return f"{'+' if self.sign == 1 else '-'}{self.rays}"
@@ -51,14 +52,12 @@ def unimodular_decomp(cone):
     else:
         cones = []
         rays = cone.rays
-        w = cone.get_sample_point()
+        w, λ = cone.get_sample_point()
         for i in range(len(rays)):
+            if λ[i] == 0: continue
             replaced = subAtWith(rays, i, w)
-            d = int(det(replaced).item())
-            if d == 0: continue
-            ki = Cone(replaced, sign(d) * cone.sign)
+            ki = Cone(replaced, sign(λ[i]) * cone.sign)
             cones.append(ki)
-            print(f"{cone} -> {ki}")
         final_nested = map(unimodular_decomp, cones)
         final = [cone for decomp in final_nested for cone in decomp]
         return final
