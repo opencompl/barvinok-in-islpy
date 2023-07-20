@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.linalg import inv, det
-from islpy import BasicSet, Space, Constraint, Context
 import olll
 from math import gcd
+import cdd
 
 def sign(x): return x/abs(x)
 
@@ -61,6 +61,42 @@ def unimodular_decomp(cone):
         final_nested = map(unimodular_decomp, cones)
         final = [cone for decomp in final_nested for cone in decomp]
         return final
+
+def triangulate(cone):
+    """
+    Use Delaunay's method:
+    * add a coefficient which is the sum of squares of the other coefficients
+    * find the facets of the polyhedron formed by these points
+    * filter them according as the last coordinate in their outer normal vector is negative
+    * project these facets down
+    """
+    extended_rays = []
+    for r in cone.rays:
+        extended_rays.append(r + [sum(x**2 for x in r)])
+
+    mat = cdd.Matrix(extended_rays)
+    mat.rep_type = cdd.RepType.GENERATOR
+    lifted_poly = cdd.Polyhedron(mat)
+    # This polyhedron is in V (generator) representation
+
+    facets_of_lifted_poly = lifted_poly.get_inequalities()
+    lower_facet_indices = []
+    for i in range(facets_of_lifted_poly.col_size):
+        if facets_of_lifted_poly[i][-1] < 0:
+            lower_facet_indices.append(i) # last coordinate of facet
+    
+    facets_to_incident_vertices = lifted_poly.get_incidence()
+    # Since in V-representation, we get F-to-V map
+
+    triangle_generator_indices = [facets_to_incident_vertices[i] for i in lower_facet_indices]
+    # (Indices of) generators of lower facets
+
+    triangles = []
+    for generator_index_set in triangle_generator_indices:
+        generator_index_list = list(generator_index_set)
+        triangles.append(Cone([cone.rays[i] for i in generator_index_list], cone.sign))
+    
+    return triangles
 
 """Tests
 >>> unimodular_decomp(Cone([[-3,1,1],[-1,-3,-1],[-1,-2,-1]]))
