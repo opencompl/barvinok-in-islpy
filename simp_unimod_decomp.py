@@ -14,10 +14,13 @@ class Cone():
         #              [d, d]
         self.rays = rays
         self.sign = sign
-        self.d = len(self.rays)
+        self.d = len(self.rays[0])
+        # Dimensionality of the space the rays are in
 
     def get_index(self):
         """Volume of parallelepiped"""
+        if len(self.rays) > self.d: return 0
+        # There are more rays than dimensions of the space
         d = abs(det(self.rays).round().astype(int))
         return d
 
@@ -47,7 +50,16 @@ class Cone():
 
 def unimodular_decomp(cone):
     ind = cone.get_index()
-    assert(ind != 0)
+    if ind == 0:
+        simplicial = triangulate(cone)
+        final_nested = [unimodular_decomp_simplicial(c) for c in simplicial]
+        final = [c for l in final_nested for c in l]
+    else:
+        final = unimodular_decomp(cone)
+    return final
+
+def unimodular_decomp_simplicial(cone):
+    ind = cone.get_index()
     if ind == 1: return [cone]
     else:
         cones = []
@@ -58,7 +70,7 @@ def unimodular_decomp(cone):
             replaced = subAtWith(rays, i, w)
             ki = Cone(replaced, sign(λ[i]) * cone.sign)
             cones.append(ki)
-        final_nested = map(unimodular_decomp, cones)
+        final_nested = map(unimodular_decomp_simplicial, cones)
         final = [cone for decomp in final_nested for cone in decomp]
         return final
 
@@ -67,7 +79,7 @@ def triangulate(cone):
     Use Delaunay's method:
     * add a coefficient which is the sum of squares of the other coefficients
     * find the facets of the polyhedron formed by these points
-    * filter them according as the last coordinate in their outer normal vector is negative
+    * filter them according as the last coordinate in their outer normal vector is negative ("lower facets")
     * project these facets down
     """
     extended_rays = []
@@ -95,6 +107,7 @@ def triangulate(cone):
     for generator_index_set in triangle_generator_indices:
         generator_index_list = list(generator_index_set)
         triangles.append(Cone([cone.rays[i] for i in generator_index_list], cone.sign))
+        # Get the lower-dimensional projections of the generators for each facet
     
     return triangles
 
