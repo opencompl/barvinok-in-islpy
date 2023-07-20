@@ -18,8 +18,8 @@ class Cone():
 
     def get_index(self):
         """Volume of parallelepiped"""
-        det = int(abs(np.linalg.det(self.rays)))
-        return det
+        d = abs(det(self.rays).round().astype(int))
+        return d
 
     def get_sample_point(self):
         """
@@ -61,3 +61,11 @@ def unimodular_decomp(cone):
         final_nested = map(unimodular_decomp, cones)
         final = [cone for decomp in final_nested for cone in decomp]
         return final
+
+"""Tests
+>>> unimodular_decomp(Cone([[-3,1,1],[-1,-3,-1],[-1,-2,-1]]))
+[+[[-1, 0, 0], [-1, -3, -1], [-1, -2, -1]], -[[-3, 1, 1], [-1, 0, 0], [-1, -2, -1]], +[[-2, -1, 0], [-1, -3, -1], [-1, 0, 0]], +[[-3, 1, 1], [-2, -1, 0], [-1, 0, 0]]]
+>>> unimodular_decomp(Cone([[-2,-3,0], [-1,0,-2], [-1,0,0]]))
+[+[[-1, -1, 0], [0, 0, -1], [-1, 0, 0]], -[[-1, -1, 0], [-1, 0, -2], [0, 0, -1]], +[[-2, -3, 0], [-1, 0, -2], [-1, -1, 0]]]
+
+"""
