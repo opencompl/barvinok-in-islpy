@@ -56,7 +56,7 @@ def unimodular_decomp(cone):
         final_nested = [unimodular_decomp_simplicial(c) for c in simplicial]
         final = [c for l in final_nested for c in l]
     else:
-        final = unimodular_decomp(cone)
+        final = unimodular_decomp_simplicial(cone)
     return final
 
 def unimodular_decomp_simplicial(cone):
@@ -94,7 +94,7 @@ def triangulate(cone):
 
     facets_of_lifted_poly = lifted_poly.get_inequalities()
     lower_facet_indices = []
-    for i in range(facets_of_lifted_poly.col_size):
+    for i in range(facets_of_lifted_poly.row_size):
         if facets_of_lifted_poly[i][-1] < 0:
             lower_facet_indices.append(i) # last coordinate of facet
     
@@ -121,7 +121,15 @@ class GenFunc():
     def add(self, other): # concat the lists, one element per term
         self.den_exps += other.den_exps
         self.num_exps += other.num_exps
-        self.sign += other.sign
+        self.signs += other.signs
+    
+    def __repr__(self):
+        return "\n".join([
+                    f"  x^{list(n)}\n" +
+                    f"{'+' if s == 1 else '-'} ---------\n  " +
+                    "".join([f"(1 - x^{list(d)})" for d in ds])
+                        for s, n, ds in zip(self.signs, self.num_exps, self.den_exps)])
+
 
 def unimod_cone_gen_func(vertex, cone):
     if all(isinstance(i, int) for i in vertex): numerator = vertex
@@ -135,5 +143,40 @@ def unimod_cone_gen_func(vertex, cone):
                    num_exps = [numerator],
                    signs = [cone.sign])
 
-def polytope_gen_func():
-    pass
+def polytope_gen_func(poly): # polyhedron in H-rep (Ax <= b)
+    vertices = poly.get_generators()
+    faces = poly.get_inequalities()
+    vertices_to_incident_faces = poly.get_incidence()
+
+    gf = GenFunc([], [], [])
+    for i in range(vertices.row_size):
+        vertex = vertices[i][1:]
+
+        incident_faces = vertices_to_incident_faces[i]
+        cone_matrix_rows = []
+        for f in incident_faces:
+            cone_matrix_rows.append(faces[f])
+        cone_matrix = cdd.Matrix(cone_matrix_rows)
+        cone_matrix.rep_type = cdd.RepType.INEQUALITY
+        cone = cdd.Polyhedron(cone_matrix)
+        rays_and_vertex = cone.get_generators()
+        
+        rays = []
+        for row in rays_and_vertex:
+            if row[0] == 0: rays.append(row[1:])
+
+        C = Cone(rays)
+
+        decomp = unimodular_decomp(C)
+
+        cone_gf = GenFunc([],[],[])
+        for unimod_cone in decomp:
+            cone_gf.add(unimod_cone_gen_func(vertex, unimod_cone))
+
+        gf.add(cone_gf)
+    
+    return gf
+
+mat = cdd.Matrix([[1,-1,0,0],[0,1,0,0],[1,0,-1,0],[0,0,1,0],[1,0,0,-1],[0,0,0,1]])
+mat.rep_type = cdd.RepType.INEQUALITY
+poly = cdd.Polyhedron(mat)
