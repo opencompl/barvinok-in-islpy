@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import inv, det
+from numpy import transpose, ceil
 import olll
 from math import gcd
 import cdd
@@ -111,10 +112,28 @@ def triangulate(cone):
     
     return triangles
 
-"""Tests
->>> unimodular_decomp(Cone([[-3,1,1],[-1,-3,-1],[-1,-2,-1]]))
-[+[[-1, 0, 0], [-1, -3, -1], [-1, -2, -1]], -[[-3, 1, 1], [-1, 0, 0], [-1, -2, -1]], +[[-2, -1, 0], [-1, -3, -1], [-1, 0, 0]], +[[-3, 1, 1], [-2, -1, 0], [-1, 0, 0]]]
->>> unimodular_decomp(Cone([[-2,-3,0], [-1,0,-2], [-1,0,0]]))
-[+[[-1, -1, 0], [0, 0, -1], [-1, 0, 0]], -[[-1, -1, 0], [-1, 0, -2], [0, 0, -1]], +[[-2, -3, 0], [-1, 0, -2], [-1, -1, 0]]]
+class GenFunc():
+    def __init__(self, den_exps : list[list[list[int]]], num_exps : list[list[int]], signs : list[int]):
+        self.den_exps = den_exps
+        self.num_exps = num_exps
+        self.signs = signs
+    
+    def add(self, other): # concat the lists, one element per term
+        self.den_exps += other.den_exps
+        self.num_exps += other.num_exps
+        self.sign += other.sign
 
-"""
+def unimod_cone_gen_func(vertex, cone):
+    if all(isinstance(i, int) for i in vertex): numerator = vertex
+    else:
+        λ = inv(transpose(cone.rays)) @ vertex
+        numerator = ceil(λ).astype(int)
+    
+    denominator = cone.rays
+
+    return GenFunc(den_exps = [cone.rays],
+                   num_exps = [numerator],
+                   signs = [cone.sign])
+
+def polytope_gen_func():
+    pass
