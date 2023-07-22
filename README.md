@@ -42,11 +42,14 @@ The functions are called in the following order. `count_integer_points()` takes 
 * Now, in order to find the number of terms in $F$, we substitute $\vec{x} = \vec1$. Here, we follow Section 3.2 of [Verdoolaege et al., 2007](https://link.springer.com/article/10.1007/s00453-006-1231-0).
     * `get_non_orth_vector()`: Find a vector $\vec\mu$ not orthogonal to any of the generators $\vec d_{ij}$. This is done inductively as follows:
         * If $n = 1$, return the vector $(1) \in \mathbb{R}^1$.
-        * For $n > 1$, first project all the vectors $\vec d_{ij}$ down to $n-1$ dimensions $\vec d_{ij}'$. Find the vector $\vec\mu'$ not orthogonal to any $\vec d_{ij}'$. Now, we need the new coordinate $\mu_n$ such that  
+        * For $n > 1$, first project all the vectors $\vec d_{ij}$ down to $n-1$ dimensions $\vec d_{ij}'$. Find the vector $\vec\mu'$ not orthogonal to any $\vec d_{ij}'$. Now, we need the new coordinate $\mu_n$ such that
+
         $$\langle \vec\mu', \vec{d}_{ij}' \rangle + \mu_n [\vec{d}_{ij}]_n \neq 0, \forall i, j;$$
-        which means that  
+        which means that
+
         $$\mu_n \neq -\frac{\langle \vec\mu', \vec{d}_{ij}' \rangle}{[\vec{d}_{ij}]_n}, \forall i, j.$$
-        Thus we find this set, take the maximum value in it, and increase it by one. We let  
+        Thus we find this set, take the maximum value in it, and increase it by one. We let
+
         $$\vec\mu = (\mu'_1, \dots, \mu'_{n-1}, \mu_n)$$.
     * Now, let each term in the generating function be  
     $$\varepsilon \cdot \frac{\vec{x}^{\vec v}}{\prod_j (1-x^{\vec d_{j}})},$$
