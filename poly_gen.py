@@ -229,8 +229,8 @@ def substitute_with_one_vector(gf):
     mu = get_non_orth_vector(generators_all)
 
     constant_term = 0
-    for s, n, ds in gf:
-        num = dot(n, mu)
+    for s, v, ds in gf:
+        num = dot(v, mu)
         dens = [dot(d, mu) for d in ds]
 
         negative_exps = [d for d in dens if d < 0]
