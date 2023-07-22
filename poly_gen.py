@@ -125,12 +125,18 @@ class GenFunc():
         self.den_exps += other.den_exps
         self.num_exps += other.num_exps
         self.signs += other.signs
+
+    def __getitem__(self, i):
+        return self.signs[i], self.num_exps[i], self.den_exps[i]
+    
+    def __len__(self):
+        return len(self.signs)
     
     def __repr__(self):
         return "\n".join([
                     f"  x^{list(n)}\n" +
                     f"{'+' if s == 1 else '-'} ---------\n  " +
-                    "".join([f"(1 - x^{list(d)})" for d in ds])
+                    "".join([f"(1 - x^{list(d)})" for d in ds]) + "\n"
                         for s, n, ds in zip(self.signs, self.num_exps, self.den_exps)])
 
 def unimod_cone_gen_func(vertex, cone):
@@ -223,7 +229,7 @@ def substitute_with_one_vector(gf):
     mu = get_non_orth_vector(generators_all)
 
     constant_term = 0
-    for s, n, ds in zip(gf.signs, gf.num_exps, gf.den_exps):
+    for s, n, ds in gf:
         num = dot(n, mu)
         dens = [dot(d, mu) for d in ds]
 
@@ -244,7 +250,7 @@ def substitute_with_one_vector(gf):
         p_of_s = get_coeffs_numerator(num)
         q_of_s = get_coeffs_denominator(dens)
 
-        constant_term += get_coeff_of(r, p_of_s, q_of_s)
+        constant_term += s * get_coeff_of(r, p_of_s, q_of_s)
 
     return constant_term
 
@@ -257,3 +263,8 @@ def get_non_orth_vector(vectors): # none of the vectors should be 0
         new_coordinate = ceil(max(disallowed_values) + 1).astype(int).item()
         new_vector.append(new_coordinate)
     return new_vector
+
+def count_integer_points(poly):
+    gf = polytope_gen_func(poly)
+    ct = substitute_with_one_vector(gf)
+    return ct
