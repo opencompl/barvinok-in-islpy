@@ -42,14 +42,22 @@ def get_sample_point(cone):
     
     return v, λ
 
+def get_dual(cone):
+    mat = cone.get_generators()
+    mat.rep_type = cdd.RepType.INEQUALITY
+    dual = cdd.Polyhedron(mat)
+    return dual
+
 def unimodular_decomp(cone):
-    ind = get_index(cone)
+    dual = get_dual(cone)
+    ind = get_index(dual)
     if ind == 0:
-        simplicial = triangulate(cone)
-        final_nested = [unimodular_decomp_simplicial(1, c) for c in simplicial]
-        final = [c for l in final_nested for c in l]
+        simplicial = triangulate(dual)
+        dual_final_nested = [unimodular_decomp_simplicial(1, c) for c in simplicial]
+        dual_final = [c for l in dual_final_nested for c in l]
     else:
-        final = unimodular_decomp_simplicial(1, cone)
+        dual_final = unimodular_decomp_simplicial(1, dual)
+    final = [(s, get_dual(c)) for s, c in dual_final]
     return final
 
 def unimodular_decomp_simplicial(s, cone):
@@ -181,10 +189,6 @@ def polytope_gen_func(poly): # polyhedron in H-rep (Ax <= b)
     
     return gf
 
-mat = cdd.Matrix([[1,-1,0,0],[0,1,0,0],[1,0,-1,0],[0,0,1,0],[1,0,0,-1],[0,0,0,1]])
-mat.rep_type = cdd.RepType.INEQUALITY
-poly = cdd.Polyhedron(mat)
-
 def comb(n, r):
     numerator = reduce(lambda a, b: a*b, [n-i for i in range(0, r)], 1)
     denominator = factorial(r)
@@ -264,3 +268,15 @@ def count_integer_points(poly):
     gf = polytope_gen_func(poly)
     ct = substitute_with_one_vector(gf)
     return ct
+
+# Unit cube in first octant
+mat = cdd.Matrix([[1,-1,0,0],[0,1,0,0],[1,0,-1,0],[0,0,1,0],[1,0,0,-1],[0,0,0,1]])
+mat.rep_type = cdd.RepType.INEQUALITY
+cube = cdd.Polyhedron(mat)
+print("Cube integer points:", count_integer_points(cube))
+
+# Tetrahedron in first octant
+mat = cdd.Matrix([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, -1, -1, -1]])
+mat.rep_type = cdd.RepType.INEQUALITY
+tetra = cdd.Polyhedron(mat)
+print("Tetrahedron integer points:", count_integer_points(tetra))

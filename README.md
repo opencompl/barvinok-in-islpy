@@ -32,7 +32,8 @@ The functions are called in the following order. `count_integer_points()` takes 
 
 * `polytope_gen_func()`: For a given polytope, find the generating function which has one term for each point inside it. This function iterates over the vertices of the polytope (found by `cdd`'s `get_generators()` method), and at each vertex $\vec{v}$, finds the generating function, as below.
     * Find the supporting cone at $\vec{v}$ (the cone formed by the inequalities satisfied by $\vec{v}$).
-    * `unimodular_decomp()`: If the index of the cone is nonzero (it is simplicial), decompose it; otherwise first triangulate it into a sum of simplicial cones, and then decompose each of them.
+    * `unimodular_decomp()`: First, find the dual of the cone. If the index of the dual is nonzero (it is simplicial), decompose it; otherwise first triangulate it into a sum of simplicial cones, and then decompose each of them. Take the dual of each of these at the end.
+        * `polarise()`: We find the ray representation of the cone. The dual cone is bounded by hyperplanes to which the rays of the original cone are *inner normal*; hence the coordinates of each ray are the same as the coefficients of the corresponding hyperplane. We therefore define a new cone whose constraint matrix is equal to the ray matrix of the original cone, and return it.
         * `triangulate()`: Follow the method described in Section 16.3 of [Lee & Santos, 2017](https://www.csun.edu/~ctoth/Handbook/chap16.pdf). Lifting from $\mathbb{R}^n$ to $\mathbb{R}^{n+1}$ is done by the map
         $$(v_1, \dots, v_n) \mapsto \left(v_1, \dots, v_n, \sum_{i=0}^n v_i^2\right).$$
         The lower facets (those whose outer normal has a negative last coordinate) are then projected back down to $\mathbb{R}^n$ for the triangulated cones.
