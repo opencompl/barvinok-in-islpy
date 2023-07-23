@@ -12,70 +12,62 @@ def subAtWith(l, i, x): return (l[:i] + [x] + l[i+1:])
 
 def dot(a, b): return sum(ai*bi for ai,bi in zip(a,b))
 
-# For simplicial cones
-class Cone():
-    def __init__(self, rays, sign=1):
-        #              [d, d]
-        self.rays = rays
-        self.sign = sign
-        self.d = len(self.rays[0])
-        # Dimensionality of the space the rays are in
+def get_index(cone):
+    """Volume of parallelepiped"""
+    rays = [row[1:] for row in cone.get_generators()]
+    if len(rays) > len(rays[0]): return 0
+    # There are more rays than dimensions of the space
+    d = abs(det(rays).round().astype(int))
+    return d
 
-    def get_index(self):
-        """Volume of parallelepiped"""
-        if len(self.rays) > self.d: return 0
-        # There are more rays than dimensions of the space
-        d = abs(det(self.rays).round().astype(int))
-        return d
+def get_sample_point(cone):
+    """
+    Use LLL and find
+    https://math.ucdavis.edu/~deloera/researchsummary/barvinokalgorithm-latte1.pdf, p. 1279-80
+    """
+    rays = [row[1:] for row in cone.generators()]
+    r = np.array(rays)
+    R = (inv(r) * det(r)).round().astype(int).tolist()
+    B = olll.reduction(R, 0.75)
+    U = (np.array(B) @ r).tolist()
+    #assert ((np.array(U) @ np.array(self.rays) == np.array(B)).all())
+    U = [[int(i/gcd(*l)) for i in l] for l in U]
 
-    def get_sample_point(self):
-        """
-        Use LLL and find
-        https://math.ucdavis.edu/~deloera/researchsummary/barvinokalgorithm-latte1.pdf, p. 1279-80
-        """
-        r = np.array(self.rays)
-        R = (inv(r) * det(r)).round().astype(int).tolist()
-        B = olll.reduction(R, 0.75)
-        U = (np.array(B) @ r).tolist()
-        #assert ((np.array(U) @ np.array(self.rays) == np.array(B)).all())
-        U = [[int(i/gcd(*l)) for i in l] for l in U]
+    index, λ = min(enumerate(B), key = lambda r : max(map(abs,r[1])))
+    v = U[index]
 
-        index, λ = min(enumerate(B), key = lambda r : max(map(abs,r[1])))
-        v = U[index]
-
-        if all(map(lambda x : x <= 0, λ)):
-            v = [-i for i in v]
-            λ = [-i for i in λ]
-        
-        return v, λ
-
-    def __repr__(self):
-        return f"{'+' if self.sign == 1 else '-'}{self.rays}"
+    if all(map(lambda x : x <= 0, λ)):
+        v = [-i for i in v]
+        λ = [-i for i in λ]
+    
+    return v, λ
 
 def unimodular_decomp(cone):
-    ind = cone.get_index()
+    ind = get_index(cone)
     if ind == 0:
         simplicial = triangulate(cone)
-        final_nested = [unimodular_decomp_simplicial(c) for c in simplicial]
+        final_nested = [unimodular_decomp_simplicial(1, c) for c in simplicial]
         final = [c for l in final_nested for c in l]
     else:
-        final = unimodular_decomp_simplicial(cone)
+        final = unimodular_decomp_simplicial(1, cone)
     return final
 
-def unimodular_decomp_simplicial(cone):
-    ind = cone.get_index()
-    if ind == 1: return [cone]
+def unimodular_decomp_simplicial(s, cone):
+    ind = get_index(cone)
+    if ind == 1: return [(1, cone)]
     else:
         cones = []
-        rays = cone.rays
-        w, λ = cone.get_sample_point()
+        rays = cone.get_generators()
+        w, λ = get_sample_point(cone)
         for i in range(len(rays)):
             if λ[i] == 0: continue
-            replaced = subAtWith(rays, i, w)
-            ki = Cone(replaced, sign(λ[i]) * cone.sign)
-            cones.append(ki)
-        final_nested = map(unimodular_decomp_simplicial, cones)
-        final = [cone for decomp in final_nested for cone in decomp]
+            replaced = subAtWith(rays, i, [0] + w)
+            mat = cdd.Matrix(replaced)
+            mat.rep_type = cdd.RepType.GENERATOR
+            ki = cdd.Polyhedron(mat)
+            cones.append((sign(λ[i]) * s, ki))
+        final_nested = [unimodular_decomp_simplicial(s, c) for s, c in cones]
+        final = [s_cone for decomp in final_nested for s_cone in decomp]
         return final
 
 def triangulate(cone):
@@ -86,8 +78,9 @@ def triangulate(cone):
     * filter them according as the last coordinate in their outer normal vector is negative ("lower facets")
     * project these facets down
     """
+    rays = cone.get_generators()
     extended_rays = []
-    for r in cone.rays:
+    for r in rays:
         extended_rays.append(r + [sum(x**2 for x in r)])
 
     mat = cdd.Matrix(extended_rays)
@@ -110,7 +103,9 @@ def triangulate(cone):
     triangles = []
     for generator_index_set in triangle_generator_indices:
         generator_index_list = list(generator_index_set)
-        triangles.append(Cone([cone.rays[i] for i in generator_index_list], cone.sign))
+        mat = cdd.Matrix([rays[i] for i in generator_index_list])
+        mat.rep_type = cdd.RepType.GENERATOR
+        triangles.append(cdd.Polyhedron(mat))
         # Get the lower-dimensional projections of the generators for each facet
     
     return triangles
@@ -139,17 +134,18 @@ class GenFunc():
                     "".join([f"(1 - x^{list(d)})" for d in ds]) + "\n"
                         for s, n, ds in zip(self.signs, self.num_exps, self.den_exps)])
 
-def unimod_cone_gen_func(vertex, cone):
+def unimod_cone_gen_func(vertex, s_cone):
+    s, cone = s_cone
     if all(isinstance(i, int) for i in vertex): numerator = vertex
     else:
         λ = inv(transpose(cone.rays)) @ vertex
         numerator = ceil(λ).astype(int)
     
-    denominator = cone.rays
+    denominator = [row[1:] for row in cone.get_generators()]
 
-    return GenFunc(den_exps = [cone.rays],
+    return GenFunc(den_exps = [denominator],
                    num_exps = [numerator],
-                   signs = [cone.sign])
+                   signs = [s])
 
 def polytope_gen_func(poly): # polyhedron in H-rep (Ax <= b)
     vertices = poly.get_generators()
@@ -169,11 +165,11 @@ def polytope_gen_func(poly): # polyhedron in H-rep (Ax <= b)
         cone = cdd.Polyhedron(cone_matrix)
         rays_and_vertex = cone.get_generators()
         
-        rays = []
-        for row in rays_and_vertex:
-            if row[0] == 0: rays.append(row[1:])
+        rays = [row for row in rays_and_vertex if row[0] == 0]
+        mat = cdd.Matrix(rays)
+        mat.rep_type = cdd.RepType.GENERATOR
 
-        C = Cone(rays)
+        C = cdd.Polyhedron(mat)
 
         decomp = unimodular_decomp(C)
 
